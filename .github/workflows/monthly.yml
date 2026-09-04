@@ -1,0 +1,50 @@
+name: Monatsverdichtung
+
+on:
+  schedule:
+    - cron: "0 7 1 * *"   # Monatserster
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Monat als YYYY-MM (leer = Vormonat)"
+        required: false
+
+concurrency:
+  group: mi-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  monthly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MI_DB_PATH: data/mi.db
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Archiv holen
+        run: scripts/db_sync.sh restore
+
+      - name: Monat verdichten
+        run: |
+          if [ -n "${{ inputs.month }}" ]; then
+            python -m mi monthly --month "${{ inputs.month }}"
+          else
+            python -m mi monthly
+          fi
+
+      - name: Archiv sichern
+        if: always()
+        run: scripts/db_sync.sh save

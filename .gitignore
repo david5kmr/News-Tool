@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Archiv-Datenbank: lokal + per Actions-Sync, nie im Haupt-Branch
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/snapshots/
+out/

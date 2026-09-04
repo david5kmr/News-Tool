@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-intelligence"
+version = "0.1.0"
+description = "Taeglicher Marktbrief und Sofort-Alerts zum deutschen Gesundheitsmarkt"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.0.0",
+    "feedparser>=6.0.11",
+    "PyYAML>=6.0.1",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "python-dateutil>=2.9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+mi = "mi.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mi*"]
+
+[tool.setuptools.package-data]
+mi = ["prompts/*.md", "schema.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

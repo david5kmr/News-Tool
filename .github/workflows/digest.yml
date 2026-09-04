@@ -1,0 +1,60 @@
+name: Taeglicher Marktbrief
+
+on:
+  schedule:
+    # 06:00 CET / 05:00 UTC im Winter. Actions kennt keine Zeitzonen, deshalb
+    # zwei Eintraege: im Sommer (CEST) feuert 04:00 UTC, im Winter 05:00 UTC.
+    # Der jeweils "falsche" Lauf findet nichts Neues und ist billig.
+    - cron: "0 4 * * *"
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: mi-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MI_DB_PATH: data/mi.db
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      MI_MAIL_BACKEND: ${{ vars.MI_MAIL_BACKEND || 'resend' }}
+      MI_MAIL_FROM: ${{ secrets.MI_MAIL_FROM }}
+      MI_MAIL_TO: ${{ secrets.MI_MAIL_TO }}
+      MI_DIGEST_MIN_SCORE: ${{ vars.MI_DIGEST_MIN_SCORE || '4' }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Archiv holen
+        run: scripts/db_sync.sh restore
+
+      - name: Sammeln
+        run: python -m mi collect --cadence daily
+
+      - name: Bewerten
+        run: python -m mi prefilter
+
+      - name: Marktbrief verschicken
+        run: python -m mi digest
+
+      - name: Archiv sichern
+        if: always()
+        run: scripts/db_sync.sh save
+
+      - name: Zustand
+        if: always()
+        run: python -m mi status

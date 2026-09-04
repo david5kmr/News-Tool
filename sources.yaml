@@ -1,0 +1,368 @@
+# Quellenregister des Market-Intelligence-Systems.
+#
+# WICHTIG — Bauschritt 1 ist noch NICHT abgeschlossen.
+# Jede Quelle traegt `status: unverified`. Die URLs unter `candidates` sind
+# begruendete Kandidaten, KEINE geprueften Feeds. Erst `mi verify-sources`
+# probiert sie durch (plus Autodiscovery ueber die `homepage`), schreibt die
+# funktionierende URL nach `url` und setzt `status: verified`.
+#
+# Der Collector ueberspringt unverifizierte Quellen standardmaessig. Wer es
+# eilig hat: `mi collect --allow-unverified` — aber dann steht im Log, welche
+# Quelle geraten war.
+#
+# status: unverified | verified | no_feed | broken | manual
+# kind:   rss | html | google_news | website_diff
+# cadence: daily | alerts | weekly
+
+version: 1
+
+defaults:
+  timeout: 20
+  user_agent: "MarketIntelligenceBot/0.1 (+Marktbeobachtung Gesundheitswesen; Kontakt siehe README)"
+  cadence: daily
+  max_items_per_run: 40
+
+sources:
+
+  # ---------------------------------------------------------------- GOAE / PKV
+  - id: baek-pressemitteilungen
+    name: Bundesaerztekammer — Pressemitteilungen
+    topic: goae
+    domain: bundesaerztekammer.de
+    homepage: https://www.bundesaerztekammer.de/presse/aktuelles
+    kind: rss
+    cadence: alerts
+    why: "GOAEneu-Verhandlungen, die Primaerquelle"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.bundesaerztekammer.de/rss/presse.xml
+      - https://www.bundesaerztekammer.de/presse/aktuelles/rss
+      - https://www.bundesaerztekammer.de/feed
+    html:
+      item_selector: "main a"
+      title_selector: null
+      date_selector: "time"
+
+  - id: pkv-verband
+    name: PKV-Verband — Presse
+    topic: goae
+    domain: pkv.de
+    homepage: https://www.pkv.de/presse/
+    kind: rss
+    cadence: alerts
+    why: "Gegenpart in den GOAE-Verhandlungen, Jahresbericht"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.pkv.de/feed/
+      - https://www.pkv.de/presse/feed/
+      - https://www.pkv.de/rss.xml
+    html:
+      item_selector: "main a"
+      date_selector: "time"
+
+  - id: wip-pkv
+    name: WIP — Wissenschaftliches Institut der PKV
+    topic: goae
+    domain: wip-pkv.de
+    homepage: https://www.wip-pkv.de/veroeffentlichungen.html
+    kind: html
+    cadence: weekly
+    why: "Studien zum PKV-Abrechnungsvolumen; erscheint selten, Feed unwahrscheinlich"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.wip-pkv.de/feed
+      - https://www.wip-pkv.de/rss.xml
+    html:
+      item_selector: "main a"
+      date_selector: "time"
+
+  - id: aerzteblatt
+    name: Deutsches Aerzteblatt — Nachrichten
+    topic: goae
+    domain: aerzteblatt.de
+    homepage: https://www.aerzteblatt.de/nachrichten
+    kind: rss
+    cadence: daily
+    why: "Tagesaktuell, hat laut Spec einen Feed"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.aerzteblatt.de/rss/news.rss
+      - https://www.aerzteblatt.de/rss/nachrichten.xml
+      - https://www.aerzteblatt.de/rss.asp
+
+  - id: aerztezeitung
+    name: Aerzte Zeitung
+    topic: goae
+    domain: aerztezeitung.de
+    homepage: https://www.aerztezeitung.de/
+    kind: rss
+    cadence: daily
+    why: "Ergaenzung zum Aerzteblatt"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.aerztezeitung.de/rss/nachrichten.xml
+      - https://www.aerztezeitung.de/feed
+      - https://www.aerztezeitung.de/rss
+
+  - id: pvs-marktbewegungen
+    name: PVS-Verbaende / Privataerztliche Verrechnungsstellen (News-Query)
+    topic: goae
+    domain: null
+    homepage: null
+    kind: google_news
+    cadence: daily
+    why: "Kein zentraler Feed — Marktbewegungen der Full-Service-Abrechner ueber News-Query"
+    status: unverified
+    url: null
+    queries:
+      - "Privataerztliche Verrechnungsstelle"
+      - "PVS Abrechnung Klinik"
+      - "aerztliche Verrechnungsstelle Uebernahme"
+
+  # ------------------------------------------------------------ Gesetz/Politik
+  - id: bmg-presse
+    name: BMG — Pressemitteilungen
+    topic: politik
+    domain: bundesgesundheitsministerium.de
+    homepage: https://www.bundesgesundheitsministerium.de/presse/pressemitteilungen
+    kind: rss
+    cadence: alerts
+    why: "Pressemitteilungen + Gesetzesvorhaben"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.bundesgesundheitsministerium.de/rss/presse.xml
+      - https://www.bundesgesundheitsministerium.de/feed/presse.rss
+      - https://www.bundesgesundheitsministerium.de/rss
+
+  - id: gba-beschluesse
+    name: G-BA — Beschluesse und Pressemitteilungen
+    topic: politik
+    domain: g-ba.de
+    homepage: https://www.g-ba.de/presse/pressemitteilungen-meldungen/
+    kind: rss
+    cadence: daily
+    why: "Beschluesse"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.g-ba.de/rss/pressemitteilungen/
+      - https://www.g-ba.de/rss/beschluesse/
+      - https://www.g-ba.de/feed
+
+  - id: bundesgesetzblatt
+    name: Bundesgesetzblatt (recht.bund.de)
+    topic: politik
+    domain: recht.bund.de
+    homepage: https://www.recht.bund.de/
+    kind: html
+    cadence: daily
+    why: "Verkuendete Gesetze, harte Fakten"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.recht.bund.de/rss/bgbl1.xml
+    html:
+      item_selector: "main a"
+      date_selector: "time"
+
+  - id: bundestag-dip
+    name: Bundestag DIP — Drucksachen
+    topic: politik
+    domain: dip.bundestag.de
+    homepage: https://dip.bundestag.de/
+    kind: html
+    cadence: daily
+    why: "Drucksachen, Vorlauf vor Verkuendung. DIP hat eine offizielle API — bei der Verifikation pruefen, ob ein API-Key sinnvoller ist als Scraping."
+    status: unverified
+    url: null
+    candidates: []
+    notes: "API: https://dip.bundestag.de/ueber-dip/hilfe/api — Key beantragen, dann kind auf 'api' umstellen."
+    html:
+      item_selector: "main a"
+      date_selector: "time"
+
+  - id: bundesrat
+    name: Bundesrat — Plenum / Tagesordnungen
+    topic: politik
+    domain: bundesrat.de
+    homepage: https://www.bundesrat.de/DE/service/aktuelles/aktuelles-node.html
+    kind: rss
+    cadence: daily
+    why: "GOAE-Novelle braucht Bundesratszustimmung"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.bundesrat.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/RSSNewsfeed.xml
+      - https://www.bundesrat.de/rss
+
+  # ------------------------------------------------------------- Klinikmarkt
+  - id: kma-online
+    name: kma Online
+    topic: klinikmarkt
+    domain: kma-online.de
+    homepage: https://www.kma-online.de/aktuelles
+    kind: rss
+    cadence: daily
+    why: "Insolvenzen, Uebernahmen, Klinikmanagement"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.kma-online.de/rss
+      - https://www.kma-online.de/feed
+      - https://www.kma-online.de/aktuelles/rss
+
+  - id: bibliomed-manager
+    name: Bibliomed Manager
+    topic: klinikmarkt
+    domain: bibliomed-manager.de
+    homepage: https://www.bibliomed-manager.de/news
+    kind: rss
+    cadence: daily
+    why: "Klinikmanagement, Traegerwechsel"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.bibliomed-manager.de/rss
+      - https://www.bibliomed-manager.de/feed
+      - https://www.bibliomed-manager.de/news/rss
+
+  - id: dkg
+    name: Deutsche Krankenhausgesellschaft — Pressemitteilungen
+    topic: klinikmarkt
+    domain: dkgev.de
+    homepage: https://www.dkgev.de/dkg/presse/
+    kind: rss
+    cadence: daily
+    why: "Verbandsposition, Finanzierungslage"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.dkgev.de/feed/
+      - https://www.dkgev.de/rss.xml
+      - https://www.dkgev.de/dkg/presse/feed/
+
+  - id: bwkg
+    name: BWKG — Baden-Wuerttembergische Krankenhausgesellschaft
+    topic: klinikmarkt
+    domain: bwkg.de
+    homepage: https://www.bwkg.de/presse/
+    kind: rss
+    cadence: daily
+    why: "Baden-Wuerttemberg = Ehingen-Region"
+    status: unverified
+    url: null
+    candidates:
+      - https://www.bwkg.de/feed/
+      - https://www.bwkg.de/rss.xml
+
+  - id: handelsblatt-inside-digital-health
+    name: Handelsblatt Inside Digital Health
+    topic: klinikmarkt
+    domain: handelsblatt.com
+    homepage: https://www.handelsblatt.com/inside/digital_health/
+    kind: html
+    cadence: weekly
+    why: "M&A — kostenpflichtig, laut Spec ggf. spaeter"
+    status: manual
+    enabled: false
+    url: null
+    notes: "Paywall. Bewusst deaktiviert; erst aktivieren, wenn ein Abo existiert. Scraping hinter Paywall waere ein Lizenzverstoss."
+
+  - id: news-klinik-insolvenz
+    name: News-Query — Krankenhaus Insolvenz / Uebernahme
+    topic: klinikmarkt
+    domain: null
+    homepage: null
+    kind: google_news
+    cadence: daily
+    why: "Deckt Haeuser ab, die in keinem Fachfeed auftauchen"
+    status: unverified
+    url: null
+    queries:
+      - "Krankenhaus Insolvenz"
+      - "Klinikgruppe Uebernahme"
+      - "Klinik Traegerwechsel"
+      - "Krankenhaus Baden-Wuerttemberg Insolvenz"
+
+  # -------------------------------------------------- Wettbewerber & HealthTech
+  - id: competitors-news
+    name: News-Query — Wettbewerber
+    topic: wettbewerb
+    domain: null
+    homepage: null
+    kind: google_news
+    cadence: daily
+    why: "Finanzierungsrunden und Produktankuendigungen der Wettbewerber"
+    status: unverified
+    url: null
+    queries:
+      - "Doctario"
+      - "MediCoda"
+      - "Avelios"
+      - "Qodia Abrechnung"
+      - "Nelly Solutions"
+      - "Felia.ai"
+      - "Dedalus ORBIS"
+
+  - id: healthtech-dach-funding
+    name: News-Query — HealthTech-Finanzierungen DACH
+    topic: wettbewerb
+    domain: null
+    homepage: null
+    kind: google_news
+    cadence: daily
+    why: "MITTEL-Relevanz laut Interessensprofil"
+    status: unverified
+    url: null
+    queries:
+      - "HealthTech Finanzierungsrunde Deutschland"
+      - "Krankenhaus Software Finanzierungsrunde"
+
+# Wettbewerber-Website-Diff — Bauschritt 7, laeuft woechentlich und separat.
+# Kein Feed, sondern Change-Detection auf festen Seiten.
+competitors:
+  - id: doctario
+    name: Doctario
+    pages:
+      - https://doctario.de/
+      - https://doctario.de/produkt
+      - https://doctario.de/news
+      - https://doctario.de/karriere
+  - id: medicoda
+    name: MediCoda
+    pages:
+      - https://medicoda.de/
+  - id: avelios
+    name: Avelios
+    pages:
+      - https://avelios.com/
+      - https://avelios.com/news
+      - https://avelios.com/careers
+  - id: qodia
+    name: Qodia
+    pages:
+      - https://qodia.de/
+  - id: nelly
+    name: Nelly Solutions
+    pages:
+      - https://nelly-solutions.com/
+      - https://nelly-solutions.com/careers
+  - id: felia
+    name: Felia
+    pages:
+      - https://felia.ai/
+  - id: dedalus
+    name: Dedalus (RICO-Roadmap)
+    pages:
+      - https://www.dedalusgroup.de/
+      - https://www.dedalusgroup.de/news/
+
+# LinkedIn-Firmenseiten stehen bewusst NICHT hier: automatisiertes Abrufen
+# verstoesst gegen die LinkedIn-ToS. Wer die Seiten beobachten will, macht das
+# manuell oder ueber die offizielle Marketing-API.
