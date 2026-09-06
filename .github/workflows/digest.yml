@@ -70,6 +70,5 @@ jobs:
         run: scripts/db_sync.sh save
 
       - name: Zustand
-        if: steps.pre.outputs.ready == 'true'
-        if: always()
+        if: always() && steps.pre.outputs.ready == 'true'
         run: python -m mi status

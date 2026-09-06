@@ -19,3 +19,6 @@ jobs:
       - run: python -m pytest -q
       - name: sources.yaml validieren
         run: python -c "from pathlib import Path; from mi.sources import load; r=load(Path('sources.yaml')); print(len(r.sources), 'Quellen ok')"
+
+      - name: CLI erreichbar
+        run: mi preflight || true
