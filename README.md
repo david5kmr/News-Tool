@@ -82,10 +82,19 @@ Messung. Faustregel: 5–8 Items pro Tag sollen den Digest fuellen.
 ## Einrichtung
 
 ```bash
-pip install -r requirements.txt
-cp .env.example .env          # Schluessel eintragen
-python -m mi verify-sources   # Bauschritt 1
-python -m mi status
+./setup.sh
+```
+
+Legt das venv an, installiert alles, laesst die Tests laufen, macht Bauschritt 1
+und sagt am Ende, was noch fehlt. Idempotent — kann wiederholt laufen.
+
+Von Hand geht es genauso:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+cp .env.example .env             # Schluessel eintragen
+.venv/bin/mi verify-sources      # Bauschritt 1
+.venv/bin/mi preflight           # was fehlt noch?
 ```
 
 `MI_MAIL_BACKEND` steht per Default auf `console`: die Mail geht nach stdout,
@@ -105,6 +114,7 @@ schicken. Fuer den echten Versand auf `resend` oder `smtp` umstellen.
 | `mi ask "Stand GOÄneu-Verhandlungen"` | Archiv befragen, mit Quellenlinks |
 | `mi monthly [--month YYYY-MM]` | Vormonat je Themenstrang verdichten |
 | `mi competitors` | Wettbewerberseiten diffen |
+| `mi preflight` | ist das System startklar? Exit 0 ja, 1 nein |
 | `mi status` | Quellenzustand, Archivgroesse, Kosten, letzte Laeufe |
 
 `--dry-run` gibt aus, statt zu verschicken. Erste Wahl beim Ausprobieren.
@@ -119,6 +129,21 @@ Stunden), Monatsverdichtung (Monatserster), Wettbewerber-Check (montags).
 Benoetigte Secrets: `ANTHROPIC_API_KEY`, `MI_MAIL_FROM`, `MI_MAIL_TO` und je
 nach Backend `RESEND_API_KEY` oder die `SMTP_*`. Optionale Repository-Variablen:
 `MI_DIGEST_MIN_SCORE`, `MI_ALERT_MIN_SCORE`, `MI_MAX_ALERTS_PER_DAY`.
+
+### Die Workflows warten, bis das System startklar ist
+
+Jeder geplante Lauf beginnt mit `mi preflight`. Fehlen verifizierte Quellen, der
+API-Key oder die Versandkonfiguration, wird der Rest des Jobs **uebersprungen und
+der Lauf gruen abgeschlossen** — mit einer Zusammenfassung, was fehlt.
+
+Das ist kein Schoenheitsfehler-Fix, sondern Absicht: die Cron-Zeitplaene feuern ab
+dem ersten Push, also lange bevor Bauschritt 1 durch ist. Ohne diese Kontrolle
+kaeme alle zwei Stunden eine Fehlermail, und man gewoehnt sich an rote Laeufe.
+Sobald Secrets und `sources.lock.yaml` da sind, laufen dieselben Workflows ohne
+weiteres Zutun durch — nichts muss wieder eingeschaltet werden.
+
+Aus demselben Grund verlangen `mi prefilter`, `mi digest` und `mi monthly` keinen
+API-Key, wenn es nichts zu tun gibt: ein Leerlauf ist kein Fehler.
 
 ### Wo die Datenbank lebt
 
@@ -233,6 +258,12 @@ Die Tests decken die Stellen ab, an denen ein Fehler teuer ist: Dedupe,
 Alert-Trigger (jede Ereignisklasse einzeln, mitsamt der Faelle, die *nicht*
 ausloesen duerfen), die Feed-Erkennung, und dass der Digest die URL aus der
 Datenbank nimmt statt aus der Modellantwort.
+
+`tests/test_http_live.py` laesst einen echten HTTP-Server auf localhost laufen und
+schickt den echten Fetcher dagegen — realistische Fixtures in `tests/fixtures/`.
+Damit ist die Schicht abgedeckt, die Stubs nie erreichen: Content-Type, Encoding,
+HTML-Entities aus CDATA, Autodiscovery ueber die Leitung, und die Kette vom Feed
+bis zum ausgeloesten Alert. Kein Netzzugang noetig.
 
 ### Was bewusst nicht gebaut ist
 

@@ -39,22 +39,37 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Vorflugkontrolle
+        id: pre
+        run: |
+          set -o pipefail
+          if python -m mi preflight --require sources,anthropic,mail | tee -a "$GITHUB_STEP_SUMMARY"; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Archiv holen
+        if: steps.pre.outputs.ready == 'true'
         run: scripts/db_sync.sh restore
 
       - name: Sammeln
+        if: steps.pre.outputs.ready == 'true'
         run: python -m mi collect --cadence daily
 
       - name: Bewerten
+        if: steps.pre.outputs.ready == 'true'
         run: python -m mi prefilter
 
       - name: Marktbrief verschicken
+        if: steps.pre.outputs.ready == 'true'
         run: python -m mi digest
 
       - name: Archiv sichern
-        if: always()
+        if: always() && steps.pre.outputs.ready == 'true'
         run: scripts/db_sync.sh save
 
       - name: Zustand
+        if: steps.pre.outputs.ready == 'true'
         if: always()
         run: python -m mi status

@@ -6,6 +6,7 @@
     mi calibrate          Bauschritt 3 — Schwellen an echten Daten einstellen
     mi digest             Bauschritt 4 — Marktbrief bauen und verschicken
     mi alerts             Bauschritt 5 — Trigger pruefen, sofort melden
+    mi preflight          Ist das System startklar?
     mi ask "..."          Bauschritt 6 — Archiv befragen
     mi monthly            Bauschritt 6 — Monat verdichten
     mi competitors        Bauschritt 7 — Wettbewerberseiten diffen
@@ -18,7 +19,6 @@ import argparse
 import json
 import logging
 import sys
-from pathlib import Path
 
 from . import db
 from .config import Config
@@ -41,15 +41,14 @@ def _setup_logging(verbose: bool) -> None:
 
 
 def _require_api_key(config: Config) -> None:
-    """Frueh und deutlich scheitern statt mitten im Lauf."""
-    import os
+    """Frueh und deutlich scheitern statt mitten im Lauf.
 
-    if not (
-        config.anthropic_api_key
-        or os.environ.get("ANTHROPIC_API_KEY")
-        or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-        or (Path.home() / ".config" / "anthropic").exists()
-    ):
+    Wird erst aufgerufen, wenn feststeht, dass es ueberhaupt Arbeit gibt —
+    ein Leerlauf soll keine Zugangsdaten verlangen.
+    """
+    from .preflight import has_anthropic_access
+
+    if not has_anthropic_access(config):
         raise SystemExit(
             "Kein Anthropic-Zugang gefunden. ANTHROPIC_API_KEY setzen "
             "oder `ant auth login` ausfuehren."
@@ -128,6 +127,12 @@ def cmd_collect(args: argparse.Namespace, config: Config) -> int:
 def cmd_prefilter(args: argparse.Namespace, config: Config) -> int:
     from .prefilter import run as run_prefilter
 
+    with db.session(config.db_path) as conn:
+        pending = len(db.unscored_items(conn, limit=1))
+    if not pending:
+        print("Nichts zu bewerten.")
+        return 0
+
     _require_api_key(config)
     llm = LLM(api_key=config.anthropic_api_key)
     with db.session(config.db_path) as conn:
@@ -157,6 +162,12 @@ def cmd_calibrate(args: argparse.Namespace, config: Config) -> int:
 
 def cmd_digest(args: argparse.Namespace, config: Config) -> int:
     from .digest import run as run_digest
+
+    with db.session(config.db_path) as conn:
+        candidates = len(db.digest_candidates(conn, config.digest_min_score, limit=1))
+    if not candidates:
+        print(f"Keine Meldungen ab Score {config.digest_min_score} — kein Marktbrief.")
+        return 0
 
     _require_api_key(config)
     registry = load_sources(config.sources_path)
@@ -196,11 +207,12 @@ def cmd_alerts(args: argparse.Namespace, config: Config) -> int:
 def cmd_ask(args: argparse.Namespace, config: Config) -> int:
     from .ask import ask
 
-    _require_api_key(config)
-    llm = LLM(api_key=config.anthropic_api_key)
     question = " ".join(args.question).strip()
     if not question:
         raise SystemExit("Keine Frage angegeben.")
+
+    _require_api_key(config)
+    llm = LLM(api_key=config.anthropic_api_key)
 
     with db.session(config.db_path) as conn:
         answer = ask(conn, config, llm, question, limit=args.limit)
@@ -209,14 +221,25 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
 
 
 def cmd_monthly(args: argparse.Namespace, config: Config) -> int:
-    from .monthly import run as run_monthly
+    from .monthly import previous_month, run as run_monthly
+
+    month = args.month or previous_month()
+    with db.session(config.db_path) as conn:
+        in_month = conn.execute(
+            "SELECT count(*) AS n FROM items WHERE "
+            "strftime('%Y-%m', coalesce(published_at, fetched_at)) = ?",
+            (month,),
+        ).fetchone()["n"]
+    if not in_month:
+        print(f"Keine Meldungen aus {month} — nichts zu verdichten.")
+        return 0
 
     _require_api_key(config)
     llm = LLM(api_key=config.anthropic_api_key)
     with db.session(config.db_path) as conn:
         run_id = db.start_run(conn, "monthly")
         try:
-            stats = run_monthly(conn, config, llm, month=args.month)
+            stats = run_monthly(conn, config, llm, month=month)
         except Exception as exc:
             db.finish_run(conn, run_id, ok=False, detail={"error": str(exc)},
                           **_usage(llm))
@@ -258,6 +281,16 @@ def cmd_competitors(args: argparse.Namespace, config: Config) -> int:
 
     print(json.dumps(stats.as_dict(), ensure_ascii=False, indent=2), file=sys.stderr)
     return 0
+
+
+def cmd_preflight(args: argparse.Namespace, config: Config) -> int:
+    """Exit 0 = startklar, Exit 1 = noch nicht. Die Workflows lesen den Code."""
+    from .preflight import CHECKS, render, run as run_preflight
+
+    required = tuple(args.require.split(",")) if args.require else CHECKS
+    checks = run_preflight(config, required)
+    print(render(checks))
+    return 0 if all(c.ok for c in checks) else 1
 
 
 def cmd_status(args: argparse.Namespace, config: Config) -> int:
@@ -393,6 +426,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("competitors", help="Bauschritt 7: Wettbewerberseiten diffen")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_competitors)
+
+    p = sub.add_parser(
+        "preflight",
+        help="ist das System startklar? (Exit 0 ja, 1 nein)",
+    )
+    p.add_argument(
+        "--require",
+        help="Kommaliste aus sources,anthropic,mail (Default: alle drei)",
+    )
+    p.set_defaults(func=cmd_preflight)
 
     p = sub.add_parser("status", help="Systemzustand")
     p.set_defaults(func=cmd_status)

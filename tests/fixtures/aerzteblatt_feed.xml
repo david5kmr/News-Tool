@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Deutsches Ärzteblatt – Nachrichten</title>
+    <link>https://www.aerzteblatt.de/nachrichten</link>
+    <description>Aktuelle Nachrichten aus dem Gesundheitswesen</description>
+    <language>de-de</language>
+    <item>
+      <title>GOÄneu: Bundesärztekammer und PKV-Verband einigen sich auf Zeitplan</title>
+      <link>https://www.aerzteblatt.de/nachrichten/158231/goaeneu-zeitplan</link>
+      <guid isPermaLink="true">https://www.aerzteblatt.de/nachrichten/158231/goaeneu-zeitplan</guid>
+      <pubDate>Thu, 03 Sep 2026 08:15:00 +0200</pubDate>
+      <description><![CDATA[<p>Berlin &ndash; Die <b>Bundes&auml;rztekammer</b> und der PKV-Verband haben sich auf einen Zeitplan f&uuml;r die Novelle der Geb&uuml;hrenordnung f&uuml;r &Auml;rzte verst&auml;ndigt. Strittig bleiben die Steigerungsfaktoren.</p>]]></description>
+    </item>
+    <item>
+      <title>Klinikverbund mit zwölf Standorten meldet Insolvenz an</title>
+      <link>https://www.aerzteblatt.de/nachrichten/158232/klinikverbund-insolvenz?utm_source=newsletter&amp;utm_medium=email</link>
+      <pubDate>Thu, 03 Sep 2026 11:40:00 +0200</pubDate>
+      <description><![CDATA[<p>Der Klinikverbund betreibt zw&ouml;lf Standorte in Baden-W&uuml;rttemberg und hat beim Amtsgericht Insolvenz angemeldet.</p>]]></description>
+    </item>
+    <item>
+      <title>Pflegekammer nimmt Arbeit auf</title>
+      <link>https://www.aerzteblatt.de/nachrichten/158233/pflegekammer</link>
+      <pubDate>Wed, 02 Sep 2026 16:00:00 +0200</pubDate>
+      <description>Die neue Pflegekammer hat ihre Geschäftsstelle eröffnet.</description>
+    </item>
+  </channel>
+</rss>

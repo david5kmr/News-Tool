@@ -13,3 +13,4 @@ data/*.db-wal
 data/*.db-shm
 data/snapshots/
 out/
+.venv/
